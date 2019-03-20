@@ -51,7 +51,19 @@ export class AuthService {
     this.authIsLoading.next(true);
     const userData = {
       Username: username,
+      Pool: userPool
     };
+    const cognitoUser =  new CognitoUser(userData);
+    cognitoUser.confirmRegistration(code, true, (err, result) => {
+      if (err) {
+        this.authDidFail.next(true);
+        this.authIsLoading.next(false);
+        return;
+      }
+      this.authDidFail.next(true);
+      this.authIsLoading.next(false);
+      this.router.navigate(['/']);
+    });
   }
   signIn(username: string, password: string): void {
     this.authIsLoading.next(true);
