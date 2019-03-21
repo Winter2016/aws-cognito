@@ -1,11 +1,11 @@
-import { Injectable } from '@angular/core';
-import { Http, Headers, Response } from '@angular/http';
-import { BehaviorSubject } from 'rxjs/BehaviorSubject';
-import { Subject } from 'rxjs/Subject';
+import {Injectable} from '@angular/core';
+import {Headers, Http, Response} from '@angular/http';
+import {BehaviorSubject} from 'rxjs/BehaviorSubject';
+import {Subject} from 'rxjs/Subject';
 import 'rxjs/add/operator/map';
 
-import { CompareData } from './compare-data.model';
-import { AuthService } from '../user/auth.service';
+import {CompareData} from './compare-data.model';
+import {AuthService} from '../user/auth.service';
 
 @Injectable()
 export class CompareService {
@@ -14,6 +14,7 @@ export class CompareService {
   dataLoaded = new Subject<CompareData[]>();
   dataLoadFailed = new Subject<boolean>();
   userData: CompareData;
+
   constructor(private http: Http,
               private authService: AuthService) {
   }
@@ -23,8 +24,12 @@ export class CompareService {
     this.dataIsLoading.next(true);
     this.dataEdited.next(false);
     this.userData = data;
-      this.http.post('https://API_ID.execute-api.REGION.amazonaws.com/dev/', data, {
-        headers: new Headers({'Authorization': 'XX'})
+    this.authService.getAuthenticatedUser().getSession((err, session) => {
+      if (err) {
+        return;
+      }
+      this.http.post('https://o5orq94tnd.execute-api.us-east-1.amazonaws.com/dev/compare-yourself', data, {
+        headers: new Headers({'Authorization': session.getIdToken().getJwtToken()})
       })
         .subscribe(
           (result) => {
@@ -38,17 +43,20 @@ export class CompareService {
             this.dataEdited.next(false);
           }
         );
+    });
   }
+
   onRetrieveData(all = true) {
     this.dataLoaded.next(null);
     this.dataLoadFailed.next(false);
-      let queryParam = '';
+    this.authService.getAuthenticatedUser().getSession((err, session) => {
+      const queryParam = '?accessToken=' + session.getAccessToken().getJwtToken();
       let urlParam = 'all';
       if (!all) {
         urlParam = 'single';
       }
-      this.http.get('https://API_ID.execute-api.REGION.amazonaws.com/dev/' + urlParam + queryParam, {
-        headers: new Headers({'Authorization': 'XXX'})
+      this.http.get('https://o5orq94tnd.execute-api.us-east-1.amazonaws.com/dev/compare-yourself/' + urlParam + queryParam, {
+        headers: new Headers({'Authorization': session.getIdToken().getJwtToken()})
       })
         .map(
           (response: Response) => response.json()
@@ -72,11 +80,15 @@ export class CompareService {
             this.dataLoaded.next(null);
           }
         );
+    });
   }
+
   onDeleteData() {
     this.dataLoadFailed.next(false);
-      this.http.delete('https://API_ID.execute-api.REGION.amazonaws.com/dev/', {
-        headers: new Headers({'Authorization': 'XXX'})
+    this.authService.getAuthenticatedUser().getSession((err, session) => {
+      const queryParam = '?accessToken=' + session.getAccessToken().getJwtToken();
+      this.http.delete('https://o5orq94tnd.execute-api.us-east-1.amazonaws.com/dev/compare-yourself/' + queryParam, {
+        headers: new Headers({'Authorization': session.getIdToken().getJwtToken()})
       })
         .subscribe(
           (data) => {
@@ -84,5 +96,6 @@ export class CompareService {
           },
           (error) => this.dataLoadFailed.next(true)
         );
+    });
   }
 }
